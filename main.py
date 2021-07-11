@@ -20,6 +20,17 @@ import pdb
 
 import mnist_loader as mloader
 
+
+def sigmoid(z):
+    """The sigmoid function."""
+    return 1.0/(1.0+np.exp(-z))
+
+
+def sigmoid_prime(z):
+    """Derivative of the sigmoid function."""
+    return sigmoid(z)*(1-sigmoid(z))
+
+
 class CostFunction:
     @staticmethod
     def fn(a, y, z):
@@ -37,16 +48,43 @@ class WeightInitializer:
     def get_weights(self):
         pass
 
+class NormalWeightInitializer(WeightInitializer):
 
-def sigmoid(z):
-    """The sigmoid function."""
-    return 1.0/(1.0+np.exp(-z))
+    def get_weights(self):
+        return [
+            np.random.randn(y, x)*np.sqrt(1.0/x) for x, y in zip(self.sizes[:-1], self.sizes[1:])
+        ]
 
 
-def sigmoid_prime(z):
-    """Derivative of the sigmoid function."""
-    return sigmoid(z)*(1-sigmoid(z))
+class GoldenWeightInitializer(WeightInitializer):
 
+    def get_weights(self):
+        gr = (1 + 5**0.5)/2
+        return [
+            np.random.randn(y, x)*np.sqrt(gr/x) for x, y in zip(self.sizes[:-1], self.sizes[1:])
+        ]
+
+
+class QuadraticCost(CostFunction):
+
+    @staticmethod
+    def fn(a, y, z):
+        return 0.5*np.linalg.norm(a-y)**2
+
+    @staticmethod
+    def delta(a, y, z):
+        return (a-y)*sigmoid_prime(z)
+
+
+class CrossEntropyCost(CostFunction):
+
+    @staticmethod
+    def fn(a, y, z):
+        return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
+
+    @staticmethod
+    def delta(a, y, z):
+        return (a-y)
 
 class NeuralNetwork(object):
 
@@ -150,46 +188,6 @@ class NeuralNetwork(object):
         return np.argmax(self.feedforward(x))
 
 
-
-class NormalWeightInitializer(WeightInitializer):
-
-    def get_weights(self):
-        return [
-            np.random.randn(y, x)*np.sqrt(1.0/x) for x, y in zip(self.sizes[:-1], self.sizes[1:])
-        ]
-
-
-class GoldenWeightInitializer(WeightInitializer):
-
-    def get_weights(self):
-        gr = (1 + 5**0.5)/2
-        return [
-            np.random.randn(y, x)*np.sqrt(gr/x) for x, y in zip(self.sizes[:-1], self.sizes[1:])
-        ]
-
-
-class QuadraticCost(CostFunction):
-
-    @staticmethod
-    def fn(a, y, z):
-        return 0.5*np.linalg.norm(a-y)**2
-
-    @staticmethod
-    def delta(a, y, z):
-        return (a-y)*sigmoid_prime(z)
-
-
-class CrossEntropyCost(CostFunction):
-
-    @staticmethod
-    def fn(a, y, z):
-        return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
-
-    @staticmethod
-    def delta(a, y, z):
-        return (a-y)
-
-
 def fit(sizes, training_data, epochs, mini_batch_size, lr, lmbda, test_data=None, save_net=False,
     validation_data=None, weight_initializer=None, costfunction=CrossEntropyCost):
     net = NeuralNetwork(sizes, costfunction, weight_initializer)
@@ -206,4 +204,4 @@ if __name__ == '__main__':
     train, dev, test = [list(data) for data in mloader.load_data_wrapper('./mnist.pkl.gz')]
 
     # Now you have to call the train function with all variables!
-    # train(...)
+    # fit(...)
