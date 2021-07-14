@@ -88,7 +88,7 @@ class CrossEntropyCost(CostFunction):
 
 class NeuralNetwork(object):
 
-    def __init__(self, sizes, cost: CostFunction = CrossEntropyCost, weight_initializer: WeightInitializer = None):
+    def __init__(self, sizes: list, cost: CostFunction = CrossEntropyCost, weight_initializer: WeightInitializer = None):
         self.num_layers = len(sizes)
         self.cost = cost
         self.sizes = sizes
@@ -121,9 +121,9 @@ class NeuralNetwork(object):
                 )
             if test_data:
                 print(
-                    f"Epoch {j}: Test Results ~ {(100*self.evaluate(test_data)/n_test):.2f}%")
+                    f"Epoch {j+1}: Test Accuracy = {(100*self.evaluate(test_data)/n_test):.2f}%")
             else:
-                print(f"Epoch {j} Complete.")
+                print(f"Epoch {j+1} Complete.")
 
     def update_mini_batch(self, mini_batch, eta, lmbda, n):
         m = len(mini_batch)
@@ -193,15 +193,33 @@ def fit(sizes, training_data, epochs, mini_batch_size, lr, lmbda, test_data=None
     net = NeuralNetwork(sizes, costfunction, weight_initializer)
     net.SGD(training_data, epochs, mini_batch_size, lr, lmbda, test_data=test_data)
     if validation_data:
-        print("Validation Results: ", net.evaluate(validation_data))
+        n = len(validation_data)
+        print(f"\nValidation Accuracy = {(100*net.evaluate(validation_data)/n):.2f}%")
 
     if save_net is True:
         net.save()
 
 
 if __name__ == '__main__':
-    # load the train, validation/dev and test data to be used on the execution of the programm
+    # load the training, validation/dev and testing data which will be used for training the model
     train, dev, test = [list(data) for data in mloader.load_data_wrapper('./mnist.pkl.gz')]
 
-    # Now you have to call the train function with all variables!
-    # fit(...)
+    # Now you have to call the function fit for training the model!
+    fit(
+         sizes=[784, 30, 10],
+         training_data=train,
+         epochs=30,
+         mini_batch_size=10,
+         lr=0.5,
+         lmbda=0.9,
+         test_data=test,
+         validation_data=dev,
+         weight_initializer=GoldenWeightInitializer,
+         save_net=True
+    )
+
+    model = NeuralNetwork([784, 30, 10])   # TODO: Load the model without giving the sizes to the class
+    model.load('export.pkl')
+    # Next do what you want with the model
+    # ...
+
