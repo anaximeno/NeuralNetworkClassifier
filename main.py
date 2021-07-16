@@ -6,7 +6,7 @@ some videos made by Andrew Ng on Youtube [https://www.youtube.com/channel/UCcIXc
 This python Program is a Neural Network classifier for the mnist digit dataset.
 
 `Example`: You may run this program on a jupyter notebook or a python console prompt, and type for example:
-    >>> train([784, 30, 10], train, 20, 10, 0.5, 0.9, test_data=test, \
+    >>> fit([784, 30, 10], train, 20, 10, 0.5, 0.9, test_data=test, \
         save_net=True, validation_data=dev, weight_initializer=GoldenWeightInitializer)
 
 Anaxímeno Brito.
@@ -66,6 +66,7 @@ class GoldenWeightInitializer(WeightInitializer):
 
 
 class QuadraticCost(CostFunction):
+    name = 'quadratic'
 
     @staticmethod
     def fn(a, y, z):
@@ -77,6 +78,7 @@ class QuadraticCost(CostFunction):
 
 
 class CrossEntropyCost(CostFunction):
+    name = 'crossentropy'
 
     @staticmethod
     def fn(a, y, z):
@@ -120,8 +122,9 @@ class NeuralNetwork(object):
                     n=n
                 )
             if test_data:
-                print(
-                    f"Epoch {j+1}: Test Accuracy = {(100*self.evaluate(test_data)/n_test):.2f}%")
+                cp = self.evaluate(test_data)
+                print(f"Epoch {j+1}/{epochs}:\n Test Accuracy = {(100*cp/n_test):.2f}%")
+                # print(f" Test Loss = {loss/n_test}")
             else:
                 print(f"Epoch {j+1} Complete.")
 
@@ -167,59 +170,97 @@ class NeuralNetwork(object):
         return DB, DW
 
     def evaluate(self, test_data):
-        test_results = [(np.argmax(self.feedforward(x)), y)
-                        for (x, y) in test_data]
-        return sum(int(x == y) for x, y in test_results)
+
+        test_results = [(np.argmax(self.feedforward(x)), y) for (x, y) in test_data]
+        # loss = sum(self.cost.fn(a, y, None) for a, y in test_results)
+        correct_predictions = sum(int(a == y) for a, y in test_results)
+
+        return correct_predictions
 
     def save(self):
-        with open("export.pkl", "wb") as p:
-            obj = dict(net='VectorizedNetwork', sizes=self.sizes, weights=self.weights, biases=self.biases)
-            pickle.dump(obj, p)
 
-    def load(self, filename: str):
-        with open(filename, "rb") as f:
+        obj = dict(
+            net='VectorizedNetwork',
+            sizes=self.sizes,
+            cost=self.cost.name,
+            weights=[self.weights, self.biases]
+        )
+
+        with open("export.pkl", "wb") as exp:
+            pickle.dump(obj, exp)
+
+
+class LoadNet(NeuralNetwork):
+
+    def __init__(self, network_path: str):
+        self.loaded_from = network_path
+
+        with open(network_path, 'rb') as  f:
             dt = pickle.load(f)
+        
+        if dt['cost'] == CrossEntropyCost.name:
+            cost = CrossEntropyCost
+        elif dt['cost'] == QuadraticCost.name:
+            cost = QuadraticCost
+        else:
+            print(f"error: {dt['cost']} was not recognized!");
+            exit(1)
 
-        assert dt['sizes'] == self.sizes, f"Sizes Must be Equal, Inference data sizes: {dt['sizes']}"
-        self.weights = dt['weights']
-        self.biases = dt['biases']
-
-    def predict(self, x):
-        return np.argmax(self.feedforward(x))
+        super().__init__(sizes=dt['sizes'], cost=cost)
+        self.weights, self.biases = dt['weights']
 
 
 def fit(sizes, training_data, epochs, mini_batch_size, lr, lmbda, test_data=None, save_net=False,
     validation_data=None, weight_initializer=None, costfunction=CrossEntropyCost):
+    
+    print('\n * Training the Network *\n')
+
     net = NeuralNetwork(sizes, costfunction, weight_initializer)
     net.SGD(training_data, epochs, mini_batch_size, lr, lmbda, test_data=test_data)
+  
     if validation_data:
         n = len(validation_data)
-        print(f"\nValidation Accuracy = {(100*net.evaluate(validation_data)/n):.2f}%")
+        cp = net.evaluate(validation_data)
+        print(f"\nValidation Set:\n Accuracy = {(100*cp/n):.2f}%")
 
-    if save_net is True:
-        net.save()
-
+    return net
 
 if __name__ == '__main__':
+    # uncommet the code below for stopping warnings
+    # import warnings
+    # warnings.filterwarnings('ignore')
+    
     # load the training, validation/dev and testing data which will be used for training the model
     train, dev, test = [list(data) for data in mloader.load_data_wrapper('./mnist.pkl.gz')]
+    
+    try:
+        sizes = eval(input('> Sizes : '))
+        epochs = int(input('> Epochs : '))
+        mbs = int(input('> Mini Batch Size : '))
+        lr = float(input('> Learning Rate : '))
+    except ValueError:
+        print("error: wrong types: Sizes must be a sequence of units of the layers!")
+        exit(1)
+    
+    # TODO: Must fix cross entropy loss
 
     # Now you have to call the function fit for training the model!
-    fit(
-         sizes=[784, 30, 10],
-         training_data=train,
-         epochs=30,
-         mini_batch_size=10,
-         lr=0.5,
-         lmbda=0.9,
-         test_data=test,
-         validation_data=dev,
-         weight_initializer=GoldenWeightInitializer,
-         save_net=True
+    model = fit(
+        costfunction=QuadraticCost,
+        sizes=sizes,
+        training_data=train,
+        epochs=epochs,
+        mini_batch_size=mbs,
+        lr=lr,
+        lmbda=0.9,
+        test_data=test,
+        validation_data=dev,
+        weight_initializer=GoldenWeightInitializer,
+        # save_net=True    # uncomment to save the model!
     )
 
-    model = NeuralNetwork([784, 30, 10])   # TODO: Load the model without giving the sizes to the class
-    model.load('export.pkl')
+    # If you saved the model
+    # save_model = LoadNet('export.pkl')
     # Next do what you want with the model
     # ...
 
