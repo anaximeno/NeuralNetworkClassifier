@@ -3,7 +3,7 @@
 """I made this when studying on the web book Neural Networks and Deep Learning [http://neuralnetworksanddeeplearning.com/] and 
 some videos made by Andrew Ng on Youtube [https://www.youtube.com/channel/UCcIXc5mJsHVYTZR1maL5l9w].
 
-This python Program is a Neural Network classifier for the mnist digit dataset.
+This python program is a Neural Network classifier for the mnist digit dataset using vanilla Neural Networks.
 
 `Example`: You may run this program on a jupyter notebook or a python console prompt, and type for example:
     >>> fit([784, 30, 10], train, 20, 10, 0.5, 0.9, test_data=test, \
@@ -234,7 +234,8 @@ if __name__ == '__main__':
     train, dev, test = [list(data) for data in mloader.load_data_wrapper('./mnist.pkl.gz')]
     
     try:
-        sizes = eval(input('> Sizes : '))
+        # The input and output size are allready determined by default, so you just have to determine the hidden sizes
+        sizes = eval(input('> Hidden Sizes : '))
         epochs = int(input('> Epochs : '))
         mbs = int(input('> Mini Batch Size : '))
         lr = float(input('> Learning Rate : '))
@@ -243,7 +244,8 @@ if __name__ == '__main__':
         exit(1)
     
     # TODO: Must fix cross entropy loss
-
+    
+    sizes = [784, sizes, 10] if type(sizes) is int else [784]+list(sizes)+[10]
     # Now you have to call the function fit for training the model!
     model = fit(
         costfunction=QuadraticCost,
