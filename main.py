@@ -94,11 +94,16 @@ class NeuralNetwork(object):
         self.num_layers = len(sizes)
         self.cost = cost
         self.sizes = sizes
+        self.input_size = sizes[0]
+        self.output_size = sizes[-1]
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
         if weight_initializer is not None:
             self.weights = weight_initializer(sizes).get_weights()
         else:
             self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
+    
+ #   def __call__(self, *args: Any, **kwds: Any) -> Any:
+  #      return super().
 
     def feedforward(self, a):
         """Return the output of the network if ``a`` is input."""
@@ -132,8 +137,8 @@ class NeuralNetwork(object):
         m = len(mini_batch)
 
         X, Y = zip(*mini_batch)
-        X = np.array(X).reshape(m, 784,).T
-        Y = np.array(Y).reshape(m, 10,).T
+        X = np.array(X).reshape(m, self.input_size,).T
+        Y = np.array(Y).reshape(m, self.output_size,).T
 
         delta_b, delta_w = self.backprop(X, Y, m)
         # Using L2 Regularization(weight decay)
@@ -206,7 +211,7 @@ class LoadNet(NeuralNetwork):
             print(f"error: {dt['cost']} was not recognized!");
             exit(1)
 
-        super().__init__(sizes=dt['sizes'], cost=cost)
+        super(LoadNet, self).__init__(sizes=dt['sizes'], cost=cost)
         self.weights, self.biases = dt['weights']
 
 
@@ -243,10 +248,14 @@ if __name__ == '__main__':
         print("error: wrong types: Sizes must be a sequence of units of the layers!")
         exit(1)
     
-    # TODO: Must fix cross entropy loss
+    #### FIXME: Must fix cross entropy loss
+
     
-    sizes = [784, sizes, 10] if type(sizes) is int else [784]+list(sizes)+[10]
-    # Now you have to call the function fit for training the model!
+    if isinstance(sizes, int):
+        sizes = [784, sizes, 10]
+    else:
+        sizes = [784]+list(sizes)+[10]
+
     model = fit(
         costfunction=QuadraticCost,
         sizes=sizes,
