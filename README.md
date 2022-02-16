@@ -1,3 +1,3 @@
-# Neural Network Classifier for the mnist dataset Build with python
+# Neural Network Classifier for the MNist Digits
 
-A Neural Network classifier built without using any framework, just using python and some other libraries (such as numpy).
+This is a built from scratch version of a neural network used for the mnist digits classification computer vision problem.
